@@ -1,0 +1,71 @@
+server:
+  port: 5010
+
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+  cloud:
+    gateway:
+      routes:
+        - id: event-manager
+          uri: http://localhost:5000
+          predicates:
+            - Path=/api/**
+          filters:
+            # CircuitBreaker filter (uses Resilience4j config)
+            - name: CircuitBreaker
+              args:
+                name: eventManagerCB   # must match Resilience4j config
+                fallbackUri: forward:/fallback
+
+            # Redis-backed RequestRateLimiter filter
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5     # tokens per second
+                redis-rate-limiter.burstCapacity: 10    # max bucket size
+                redis-rate-limiter.requestedTokens: 1   # tokens needed per request
+
+# ======== Resilience4j Configuration ========
+resilience4j:
+  circuitbreaker:
+    instances:
+      eventManagerCB:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+  timelimiter:
+    instances:
+      eventManagerCB:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+
+# ======== Actuator Configuration (monitoring) ========
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+  endpoint:
+    health:
+      enabled: true
+    circuitbreakers:
+      enabled: true
+
+# ======== Logging ========
+logging:
+  file:
+    name: logs/gateway.log
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    io.github.resilience4j: DEBUG
+
