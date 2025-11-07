@@ -1,0 +1,27 @@
+server:
+  port: 5030
+
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000ms
+
+  cloud:
+    gateway:
+      routes:
+        - id: event-manager
+          uri: http://event-manager:5020
+          predicates:
+            - Path=/api/**
+          filters:
+            - RemoveRequestHeader=Authorization
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

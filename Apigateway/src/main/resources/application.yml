@@ -9,26 +9,40 @@ spring:
       host: localhost
       port: 6379
       timeout: 2000ms
+
   cloud:
     gateway:
       routes:
+        # ---------- PUBLIC: Events (must be FIRST) ----------
+        - id: event-manager-public
+          uri: http://localhost:5000
+          predicates:
+            - Path=/api/events/**
+            - Method=GET
+          filters:
+            # Ensure stale/expired tokens don't reach the backend for public GETs
+            - RemoveRequestHeader=Authorization
+            # Keep public GETs simple (no RL/CircuitBreaker needed)
+
+        # ---------- PROTECTED: everything else under /api/** ----------
         - id: event-manager
           uri: http://localhost:5000
           predicates:
             - Path=/api/**
           filters:
-            # CircuitBreaker filter (uses Resilience4j config)
+            # CircuitBreaker (Resilience4j)
             - name: CircuitBreaker
               args:
-                name: eventManagerCB   # must match Resilience4j config
+                name: eventManagerCB
                 fallbackUri: forward:/fallback
 
-            # Redis-backed RequestRateLimiter filter
+            # Redis-backed RequestRateLimiter
+            # If Redis isn't running locally, comment this whole block.
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 5     # tokens per second
-                redis-rate-limiter.burstCapacity: 10    # max bucket size
-                redis-rate-limiter.requestedTokens: 1   # tokens needed per request
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
 
 # ======== Resilience4j Configuration ========
 resilience4j:
@@ -68,4 +82,3 @@ logging:
   level:
     org.springframework.cloud.gateway: DEBUG
     io.github.resilience4j: DEBUG
-

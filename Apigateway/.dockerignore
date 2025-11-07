@@ -1,0 +1,20 @@
+# Build artifacts
+/target
+/logs
+
+# IDE / tooling
+/.idea
+/.vscode
+*.iml
+
+# Git metadata
+/.git
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker noise
+Dockerfile*
+docker-compose*.yml
