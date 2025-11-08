@@ -18,6 +18,7 @@ spring:
           uri: http://localhost:5000
           predicates:
             - Path=/api/events/**
+            - Path=/api/artists/**
             - Method=GET
           filters:
             # Ensure stale/expired tokens don't reach the backend for public GETs
