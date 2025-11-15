@@ -17,11 +17,9 @@ spring:
         - id: event-manager-public
           uri: http://localhost:5000
           predicates:
-            - Path=/api/events/**
-            - Path=/api/artists/**
+            - Path=/api/events/**,/api/artists/**
             - Method=GET
           filters:
-            # Ensure stale/expired tokens don't reach the backend for public GETs
             - RemoveRequestHeader=Authorization
             # Keep public GETs simple (no RL/CircuitBreaker needed)
 
